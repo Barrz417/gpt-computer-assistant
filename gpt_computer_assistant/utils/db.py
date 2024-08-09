@@ -131,6 +131,8 @@ down_icon_path = os.path.join(media_dir, "Down.png")
 
 click_sound_path = os.path.join(media_dir, "boop.mp3")
 
+gca_logo_path = os.path.join(media_dir, "gca_logo.png")
+
 agents = []  # Placeholder for agents data
 
 groqkey = os.path.join(artifacts_dir, "groqkey.db")
@@ -467,3 +469,104 @@ def load_stt_model_settings():
         return f.read()
     
 
+
+
+
+
+logo_active_setting = os.path.join(artifacts_dir, "logo_active_setting.db")
+
+
+def activate_logo_active_setting():
+    """Activate the logo_active_setting."""
+    with open(logo_active_setting, "w") as f:
+        f.write("1")
+
+
+def deactivate_logo_active_setting():
+    """Deactivate the logo_active_setting."""
+    with open(logo_active_setting, "w") as f:
+        f.write("0")
+
+def is_logo_active_setting_active():
+    """Check if the logo_active_setting is active."""
+    if not os.path.exists(logo_active_setting):
+        return False
+    with open(logo_active_setting, "r") as f:
+        return f.read() == "1"
+    
+
+
+
+
+logo_file_path = os.path.join(artifacts_dir, "loog_file.db")
+
+
+def save_logo_file_path(model):
+    """Save the logo_file_path to a file."""
+    with open(logo_file_path, "w") as f:
+        f.write(model)
+
+
+def load_logo_file_path():
+    """Load the logo_file_path from a file."""
+    if not os.path.exists(logo_file_path):
+        return gca_logo_path
+    with open(logo_file_path, "r") as f:
+        return f.read()
+    
+
+custom_logo_path = os.path.join(artifacts_dir, "custom_logo_path.png")
+
+
+
+
+
+
+long_gca_setting = os.path.join(artifacts_dir, "long_gca_setting.db")
+
+
+def activate_long_gca_setting():
+    """Activate the long_gca_setting."""
+    with open(long_gca_setting, "w") as f:
+        f.write("1")
+
+
+def deactivate_long_gca_setting():
+    """Deactivate the long_gca_setting."""
+    with open(long_gca_setting, "w") as f:
+        f.write("0")
+
+def is_long_gca_setting_active():
+    """Check if the long_gca_setting is active."""
+    if not os.path.exists(long_gca_setting):
+        return True
+    with open(long_gca_setting, "r") as f:
+        return f.read() == "1"
+    
+
+
+
+
+
+
+
+
+
+
+
+location_setting = os.path.join(artifacts_dir, "location_setting.db")
+
+
+def save_location_setting(model):
+    """Save the location_setting to a file."""
+    with open(location_setting, "w") as f:
+        f.write(model)
+
+
+def load_location_setting():
+    """Load the location_setting from a file."""
+    if not os.path.exists(location_setting):
+        return "right"
+    with open(location_setting, "r") as f:
+        return f.read()
+    

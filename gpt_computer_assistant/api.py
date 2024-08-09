@@ -29,8 +29,10 @@ def input():
 
     firsst_text = the_input_box.toPlainText()
 
+    original_tts = the_main_window.tts_available
+
     if talk == "true":
-        the_main_window.api_enabled = False
+        the_main_window.tts_available = True
         the_main_window.manuel_stop = True
 
     if screen != "true":
@@ -52,8 +54,7 @@ def input():
 
 
 
-    if talk == "true":
-        the_main_window.api_enabled = True
+    the_main_window.tts_available = original_tts
 
     return jsonify({"response": response})
 
@@ -88,14 +89,16 @@ def tts():
     This function receives a text to speech request from the user and returns the response.
     """
     from .gpt_computer_assistant import the_main_window, the_input_box
-    the_main_window.api_enabled = False
+    original_tts = the_main_window.tts_available
+    the_main_window.tts_available = True
     the_main_window.manuel_stop = True
     data = request.json
     text = data["text"]
     print("TTS:", text)
     from .agent.process import tts_if_you_can
     tts_if_you_can(text, not_threaded=True, status_edit=True)
-    the_main_window.api_enabled = True
+    the_main_window.tts_available = original_tts
+
     return jsonify({"response": "TTS request received"})
 
 @app.route("/profile", methods=["POST"])
@@ -379,7 +382,7 @@ def save_openai_api_key():
     return jsonify({"response": "OpenAI API key saved."})
 
 
-@app.route("/save_openai_url", methods=["POST"]),
+@app.route("/save_openai_url", methods=["POST"])
 def save_openai_url():
     """
     This api saves the OpenAI base URL
@@ -445,6 +448,60 @@ def save_stt_model_settings():
     from .utils.db import save_stt_model_settings
     save_stt_model_settings(stt_model_settings)
     return jsonify({"response": "STT model settings saved."})
+
+
+@app.route("/show_logo", methods=["POST"])
+def show_logo():
+    """
+    This api shows the custom logo
+    """
+    from .utils.db import activate_logo_active_setting
+    activate_logo_active_setting()
+    from .gpt_computer_assistant import the_main_window
+    the_main_window.show_logo_api()
+    return jsonify({"response": "Custom logo activated."})
+
+@app.route("/hide_logo", methods=["POST"])
+def hide_logo():
+    """
+    This api hides the custom logo
+    """
+    from .utils.db import deactivate_logo_active_setting
+    deactivate_logo_active_setting()
+    from .gpt_computer_assistant import the_main_window
+    the_main_window.hide_logo_api()
+    return jsonify({"response": "Custom logo deactivated."})
+
+
+@app.route("/custom_logo_upload", methods=["POST"])
+def custom_logo_upload():
+    """
+    This api uploads a custom logo
+    """
+    file = request.files["logo"]
+    from .utils.db import save_logo_file_path, custom_logo_path
+    file.save(custom_logo_path)
+    save_logo_file_path(custom_logo_path)
+    return jsonify({"response": "Custom logo uploaded."})
+
+
+@app.route("/activate_long_gca", methods=["POST"])
+def activate_long_gca():
+    """
+    This api activates long GCA
+    """
+    from .gpt_computer_assistant import the_main_window
+    the_main_window.activate_long_gca_api()
+    return jsonify({"response": "Long GCA activated."})
+
+@app.route("/deactivate_long_gca", methods=["POST"])
+def deactivate_long_gca():
+    """
+    This api deactivates long GCA
+    """
+    from .gpt_computer_assistant import the_main_window
+    the_main_window.deactivate_long_gca_api()
+    return jsonify({"response": "Long GCA deactivated."})
 
 
 class ServerThread(threading.Thread):

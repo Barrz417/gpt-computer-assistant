@@ -25,9 +25,12 @@ class Remote_Client:
             raise Exception("The server is not running")
 
 
-    def send_request(self, path, data, dont_error=False):
+    def send_request(self, path, data, files=None, dont_error=False):
         try:
-            response = requests.post(self.url+path, json=data)
+            if files == None:
+                response = requests.post(self.url+path, json=data)
+            else:
+                response = requests.post(self.url+path, data=data, files=files)
             if response.status_code != 200:
                 try:
                     print(response.json())
@@ -228,6 +231,38 @@ class Remote_Client:
         data = {"model_name": model_name}
         response = self.send_request("/save_stt_model_settings", data)
         return response["response"]
+
+
+    
+
+    def show_logo(self):
+        data = {}
+        response = self.send_request("/show_logo", data)
+        return response["response"]
+    
+    def hide_logo(self):
+        data = {}
+        response = self.send_request("/hide_logo", data)
+        return response["response"]
+
+
+    def custom_logo(self, logo_path):
+        data = {}
+        files = {"logo": open(logo_path, "rb")}
+        response = self.send_request("/custom_logo_upload", data, files)
+        return response["response"]
+
+
+    def activate_long_gca(self):
+        data = {}
+        response = self.send_request("/activate_long_gca", data)
+        return response["response"]
+    
+    def deactivate_long_gca(self):
+        data = {}
+        response = self.send_request("/deactivate_long_gca", data)
+        return response["response"]
+
 
 
     def wait(self, second):

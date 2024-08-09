@@ -46,6 +46,8 @@ from PyQt5.QtCore import Qt, QTimer, QRect, pyqtSignal
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QShortcut
 from PyQt5.QtWidgets import QSpacerItem, QSizePolicy
+from PyQt5.QtWidgets import QDesktopWidget
+
 
 from PyQt5.QtWidgets import (
     QPushButton,
@@ -88,6 +90,111 @@ user_id = load_user_id()
 os_name_ = os_name()
 
 
+
+from PyQt5.QtCore import Qt, QRegExp
+from PyQt5.QtGui import QColor, QSyntaxHighlighter, QTextCharFormat, QFont
+from PyQt5.QtWidgets import QApplication, QTextEdit
+
+class PythonSyntaxHighlighter(QSyntaxHighlighter):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.highlighting_rules = []
+
+        # Define different text formats with appropriate colors
+        keyword_format = QTextCharFormat()
+        keyword_format.setForeground(QColor(127, 0, 85))  # Dark purple for keywords
+
+        built_in_formats = QTextCharFormat()
+        built_in_formats.setForeground(QColor(42, 0, 255))  # Dark blue for built-ins and constants
+
+        string_format = QTextCharFormat()
+        string_format.setForeground(QColor(0, 128, 0))  # Green for strings
+
+        function_format = QTextCharFormat()
+        function_format.setForeground(QColor(0, 0, 255))  # Blue for function names
+
+        comment_format = QTextCharFormat()
+        comment_format.setForeground(QColor(128, 128, 128))  # Gray for comments
+        comment_format.setFontItalic(True)
+
+        number_format = QTextCharFormat()
+        number_format.setForeground(QColor(255, 0, 0))  # Red for numbers
+
+        decorator_format = QTextCharFormat()
+        decorator_format.setForeground(QColor(0, 0, 128))  # Navy blue for decorators
+
+        # Markdown formatting
+        header_format = QTextCharFormat()
+        header_format.setForeground(QColor(0, 128, 128))  # Teal for headers
+        header_format.setFontWeight(QFont.Bold)
+
+        bold_format = QTextCharFormat()
+        bold_format.setFontWeight(QFont.Bold)
+
+        italic_format = QTextCharFormat()
+        italic_format.setFontItalic(True)
+
+        code_format = QTextCharFormat()
+        code_format.setForeground(QColor(255, 140, 0))  # Dark orange for inline code
+        code_format.setFontFamily("Courier New")
+        code_format.setBackground(QColor(245, 245, 245))  # Light gray background for inline code
+
+        block_code_format = QTextCharFormat()
+        block_code_format.setForeground(QColor(255, 140, 0))  # Dark orange for code blocks
+        block_code_format.setFontFamily("Courier New")
+        block_code_format.setBackground(QColor(245, 245, 245))  # Light gray background for code blocks
+
+        # Define the regular expressions
+        keywords = [
+            'def', 'class', 'if', 'else', 'elif', 'return', 'import', 'from', 'as', 'for', 
+            'while', 'try', 'except', 'finally', 'with', 'async', 'await', 'yield', 'lambda', 
+            'global', 'nonlocal', 'assert', 'del', 'pass', 'break', 'continue', 'and', 'or', 
+            'not', 'is', 'in'
+        ]
+        self.highlighting_rules += [(QRegExp(r'\b' + word + r'\b'), keyword_format) for word in keywords]
+
+        built_ins = [
+            'True', 'False', 'None', '__init__', 'self', 'print', 'len', 'range', 'str', 'int', 
+            'float', 'list', 'dict', 'set', 'tuple'
+        ]
+        self.highlighting_rules += [(QRegExp(r'\b' + word + r'\b'), built_in_formats) for word in built_ins]
+
+        self.highlighting_rules.append((QRegExp(r'"[^"\\]*(\\.[^"\\]*)*"'), string_format))
+        self.highlighting_rules.append((QRegExp(r"'[^'\\]*(\\.[^'\\]*)*'"), string_format))
+
+        self.highlighting_rules.append((QRegExp(r'\bdef\b\s*(\w+)'), function_format))
+        self.highlighting_rules.append((QRegExp(r'\bclass\b\s*(\w+)'), function_format))
+        
+        self.highlighting_rules.append((QRegExp(r'#.*'), comment_format))
+        
+        self.highlighting_rules.append((QRegExp(r'\b[0-9]+[lL]?\b'), number_format))
+        self.highlighting_rules.append((QRegExp(r'\b0[xX][0-9A-Fa-f]+[lL]?\b'), number_format))
+        self.highlighting_rules.append((QRegExp(r'\b0[oO]?[0-7]+[lL]?\b'), number_format))
+        self.highlighting_rules.append((QRegExp(r'\b0[bB][01]+[lL]?\b'), number_format))
+
+        self.highlighting_rules.append((QRegExp(r'@[^\s]+'), decorator_format))
+
+        # Markdown rules
+        self.highlighting_rules.append((QRegExp(r'^#{1,6} .+'), header_format))  # Headers
+        self.highlighting_rules.append((QRegExp(r'\*\*[^*]+\*\*'), bold_format))  # **bold**
+        self.highlighting_rules.append((QRegExp(r'__[^_]+__'), bold_format))  # __bold__
+        self.highlighting_rules.append((QRegExp(r'\*[^*]+\*'), italic_format))  # *italic*
+        self.highlighting_rules.append((QRegExp(r'_[^_]+_'), italic_format))  # _italic_
+        self.highlighting_rules.append((QRegExp(r'`[^`]+`'), code_format))  # Inline code
+
+    def highlightBlock(self, text):
+        # Handle code blocks separately
+        if text.strip().startswith("```"):
+            self.setFormat(0, len(text), self.highlighting_rules[-1][1])
+            return
+        
+        for pattern, format in self.highlighting_rules:
+            expression = QRegExp(pattern)
+            index = expression.indexIn(text)
+            while index >= 0:
+                length = expression.matchedLength()
+                self.setFormat(index, length, format)
+                index = expression.indexIn(text, index + length)
 
 readed_sentences = []
 
@@ -146,7 +253,7 @@ class Worker(QThread):
                 if self.the_input_text != last_text:
                     self.commited_text.append(self.the_input_text)
 
-                    if len(self.the_input_text) > 90 or MainWindow.api_enabled or not self.make_animation:
+                    if len(self.the_input_text) > 90 or not self.make_animation:
                         self.text_to_set.emit(self.the_input_text)
                     else:
                         for i in range(len(self.the_input_text)):
@@ -265,6 +372,86 @@ class Worker_uncollapse(QThread):
                 self.text_to_set.emit("True")
                 self.the_input_text = None
                
+
+
+
+
+class Worker_show_logo(QThread):
+    text_to_set = pyqtSignal(str)
+
+
+    def __init__(self):
+        super().__init__()
+        self.the_input_text = None
+
+
+
+    def run(self):
+        while True:
+            self.msleep(500)  # Simulate a time-consuming task
+
+            if self.the_input_text:
+                self.text_to_set.emit("True")
+                self.the_input_text = None
+               
+
+class Worker_hide_logo(QThread):
+    text_to_set = pyqtSignal(str)
+
+
+    def __init__(self):
+        super().__init__()
+        self.the_input_text = None
+
+
+
+    def run(self):
+        while True:
+            self.msleep(500)  # Simulate a time-consuming task
+
+            if self.the_input_text:
+                self.text_to_set.emit("True")
+                self.the_input_text = None
+
+
+class Worker_activate_long_gca(QThread):
+    text_to_set = pyqtSignal(str)
+
+
+    def __init__(self):
+        super().__init__()
+        self.the_input_text = None
+
+
+
+    def run(self):
+        while True:
+            self.msleep(500)  # Simulate a time-consuming task
+
+            if self.the_input_text:
+                self.text_to_set.emit("True")
+                self.the_input_text = None
+
+
+class Worker_deactivate_long_gca(QThread):
+    text_to_set = pyqtSignal(str)
+
+
+    def __init__(self):
+        super().__init__()
+        self.the_input_text = None
+
+
+
+    def run(self):
+        while True:
+            self.msleep(500)  # Simulate a time-consuming task
+
+            if self.the_input_text:
+                self.text_to_set.emit("True")
+                self.the_input_text = None
+
+
 
 
 class DrawingWidget(QWidget):
@@ -594,6 +781,7 @@ from PyQt5.QtCore import QVariantAnimation
 
 class MainWindow(QMainWindow):
     api_enabled = False
+    tts_available = True
 
 
     def screenshot_and_microphone_button_action(self):
@@ -686,6 +874,27 @@ class MainWindow(QMainWindow):
         self.reading_thread = False
         self.reading_thread_2 = False
 
+
+        image_layout = QHBoxLayout()
+        self.the_image = QLabel(self)
+        self.the_image.setPixmap(QtGui.QPixmap(load_logo_file_path()).scaled(15, 15))
+
+        image_layout.addWidget(self.the_image)
+        self.layout.addLayout(image_layout)
+        self.the_image.setAlignment(Qt.AlignCenter)
+        self.the_image.setFixedHeight(35)
+
+
+        # Logo Adding
+        if not is_logo_active_setting_active():
+            self.the_image.hide()
+
+
+        
+        self.update_screen()
+
+        if load_location_setting() == "right":
+            self.put_window_to_right_side_of_screen()
 
 
     def init_border_animation(self):
@@ -821,14 +1030,23 @@ class MainWindow(QMainWindow):
         self.settingsButton.hide()
         self.llmsettingsButton.hide()
 
-        self.window().setFixedSize(self.width(), 140)        
+        self.update_screen()
+
+
+
+  
+
 
 
 
     def initUI(self):
         self.setWindowTitle("GPT")
         self.setGeometry(100, 100, 200, 200)
-        self.setFixedSize(self.width()+10, self.height() + 80)
+        width = 210
+        height = 300
+  
+        # setting the minimum size 
+        self.setMinimumSize(width, height) 
 
         self.first_height = self.height()
         self.first_width = self.width()
@@ -930,6 +1148,16 @@ class MainWindow(QMainWindow):
 
         input_box.setFixedHeight(80)
 
+        # Set text wrapping. I dont wat to cut the text
+        input_box.setWordWrapMode(QtGui.QTextOption.NoWrap)
+
+        # Change the font size 
+        font = QtGui.QFont()
+        font.setPointSize(12)
+        input_box.setFont(font)
+
+        self.highlighter = PythonSyntaxHighlighter(self.input_box.document())
+
 
         if load_api_key() == "CHANGE_ME":
             input_box.setPlaceholderText("Save your API Key, go to settings")
@@ -1011,6 +1239,25 @@ class MainWindow(QMainWindow):
         self.worker_uncollapse.start()
 
 
+        self.worker_show_logo = Worker_show_logo()
+        self.worker_show_logo.text_to_set.connect(self.show_logo)
+        self.worker_show_logo.start()
+
+        self.worker_hide_logo = Worker_hide_logo()
+        self.worker_hide_logo.text_to_set.connect(self.hide_logo)
+        self.worker_hide_logo.start()
+
+
+
+        self.worker_activate_long_gca = Worker_activate_long_gca()
+        self.worker_activate_long_gca.text_to_set.connect(self.activate_long_gca)
+        self.worker_activate_long_gca.start()
+
+        self.worker_deactivate_long_gca = Worker_deactivate_long_gca()
+        self.worker_deactivate_long_gca.text_to_set.connect(self.deactivate_long_gca)
+        self.worker_deactivate_long_gca.start()
+
+
         # print height and width
         print(self.height(), self.width())
 
@@ -1044,7 +1291,7 @@ class MainWindow(QMainWindow):
         self.worker.the_input_text = text
 
     def read_part_task_generate_only(self):
-        if not is_just_text_model_active() and not the_main_window.api_enabled:
+        if not is_just_text_model_active() and the_main_window.tts_available:
 
 
             threads = {}
@@ -1072,7 +1319,7 @@ class MainWindow(QMainWindow):
         self.reading_thread_2 = False
 
     def read_part_task(self):
-        if not is_just_text_model_active() and not the_main_window.api_enabled:
+        if not is_just_text_model_active() and the_main_window.tts_available:
             threads = {}
 
             the_okey_parts = split_with_multiple_delimiters(self.worker.the_input_text,".?!:")
@@ -1258,6 +1505,7 @@ class MainWindow(QMainWindow):
         self.collapse = True
         self.collapse_window()
         activate_collapse_setting()
+        self.update_screen()
 
     def collapse_gca_api(self):
         self.worker_collapse.the_input_text = "True"
@@ -1272,10 +1520,94 @@ class MainWindow(QMainWindow):
         self.settingsButton.show()
         self.llmsettingsButton.show()
 
-        self.window().setFixedSize(self.first_width, self.first_height)
+
+
+
         deactivate_collapse_setting()
+
+        self.update_screen()
 
 
     def uncollapse_gca_api(self):
         self.worker_uncollapse.the_input_text = "True"
+
         
+
+
+
+    def show_logo(self):
+        self.the_image.show()
+        self.update_screen()
+
+    def show_logo_api(self):
+        self.worker_show_logo.the_input_text = "True"
+
+    def hide_logo(self):
+        self.the_image.hide()
+        self.update_screen()
+    
+    def hide_logo_api(self):
+        self.worker_hide_logo.the_input_text = "True"
+
+
+
+
+
+    def activate_long_gca(self):
+        activate_long_gca_setting()
+        self.update_screen()
+
+    def activate_long_gca_api(self):
+        self.worker_activate_long_gca.the_input_text = "True"
+
+    def deactivate_long_gca(self):
+        deactivate_long_gca_setting()
+        self.update_screen()
+
+    def deactivate_long_gca_api(self):
+        self.worker_deactivate_long_gca.the_input_text = "True"
+
+
+    def update_screen(self):
+        width = 210
+        height = 300
+  
+        
+
+        if is_logo_active_setting_active():
+            height += 35
+
+        if is_collapse_setting_active():
+            height = 150
+            if is_logo_active_setting_active():
+                height += 35
+        
+        if is_long_gca_setting_active():
+            if not is_collapse_setting_active():
+                height += 500
+                self.input_box.setFixedHeight(580)
+
+        else:
+            self.input_box.setFixedHeight(80)
+
+            
+
+        self.setFixedSize(width, height) 
+
+        
+
+
+
+    def put_window_to_right_side_of_screen(self):
+        screen = QDesktopWidget().screenGeometry()
+        window = self.frameGeometry()
+        
+        # Calculate x position for the right side of the screen and center vertically
+        x = screen.width() - window.width()  # To right side
+        y = (screen.height() - window.height()) // 2  # Center vertically
+
+
+        # Add a small offset to the right side
+        x -= 10
+
+        self.move(x, y)
